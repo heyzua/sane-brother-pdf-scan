@@ -1,0 +1,57 @@
+#!/usr/bin/env ruby
+
+$:.unshift File.expand_path(File.join(File.dirname(File.dirname(__FILE__)), 'lib'))
+
+require 'bundler/setup'
+require 'choosy'
+require 'sane'
+require 'the-big-scan'
+
+$cmd = Choosy::Command.new :'scan-document' do
+  section "Description" do
+    para "Uses a scanner to pull in images and sort them into a PDF document."
+  end
+
+  section "Options" do
+    string :scanner, "The scanner to use as the SANE backend. By default, uses the first scanner it finds."
+
+    string :document, "The final name of the document.",
+      required: true
+
+    string :Directory, "The directory to output the document to. Default is 'scans'.",
+      default: 'scans'
+
+    integer :resolution, "The resolution to scan with. Default is 300dpi.",
+      default: 300
+
+    string :'Page-size', "The page size of the document. Default is 'letter'.",
+      default: "letter"
+
+    boolean :'no-cleanup', "Don't delete the original TIFF files.",
+      default: false
+
+    boolean :'Show-commands', "Show the commands that are executing.",
+      default: false
+
+    boolean :preview, "Preview the document in the document viewer.",
+      default: false
+
+    string :viewer, "The document viewer to use.",
+      depends_on: :preview,
+      default: (case RUBY_PLATFORM
+                when /linux/i then 'evince'
+                when /mac/i then 'open'
+                end)
+
+    help
+  end
+
+  executor do |args, options|
+    options[:scanner] ||= Sane.open {|sane| sane.devices[0].name}
+    Scanner.new(options).scan!
+  end
+end
+
+if __FILE__ == $0
+  $cmd.execute!(ARGV)
+end

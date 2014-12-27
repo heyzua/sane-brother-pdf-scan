@@ -1,0 +1,53 @@
+#!/usr/bin/env ruby
+
+$:.unshift File.expand_path(File.join(File.dirname(File.dirname(__FILE__)), 'lib'))
+
+require 'bundler/setup'
+require 'choosy'
+require 'the-big-scan'
+
+$cmd = Choosy::Command.new :'generate-merged-pdf' do
+  section "Description" do
+    para "Merges a collection of PDFs into a single PDF, adding bookmarks for each individual PDF."
+  end
+
+  section "Options" do
+    string :document, "The final name of the document.",
+      required: true
+
+    string :Directory, "The directory to output the document to. Default is 'scans'.",
+      default: 'scans'
+
+    boolean :'include-existing', "Include the existing PDF files in the output directory.",
+      default: false
+
+    boolean :cleanup, "Delete the original PDF files. Default is false.",
+      default: false
+
+    boolean :'Show-commands', "Show the commands that are being executed.",
+      default: false
+
+    boolean :preview, "Preview the document in the document viewer.",
+      default: false
+
+    string :viewer, "The document viewer to use.",
+      depends_on: :preview,
+      default: (case RUBY_PLATFORM
+                when /linux/i then 'evince'
+                when /mac/i then 'open'
+                end)
+
+    boolean :overwrite, "Overwrite the existing file. Default is false.",
+      default: false
+
+    help
+  end
+
+  executor do |args, options|
+    GeneratorUI.new(options).run!
+  end
+end
+
+if __FILE__ == $0
+  $cmd.execute!(ARGV)
+end
